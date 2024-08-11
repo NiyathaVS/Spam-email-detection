@@ -1,0 +1,103 @@
+import pandas as pd
+import numpy as np
+
+# Define the directory path
+Path = 'drive/MyDrive/'
+
+# Construct the full file path
+file_path = f'{Path}spam.csv'
+
+# Try reading the CSV file using a different encoding
+try:
+    df = pd.read_csv(file_path, encoding='latin1')
+except UnicodeDecodeError:
+    try:
+        df = pd.read_csv(file_path, encoding='iso-8859-1')
+    except UnicodeDecodeError:
+        df = pd.read_csv(file_path, encoding='cp1252')
+
+# Print the DataFrame
+print(df.head())
+
+
+#drop columns that are not neccesary an rename the columns
+df = df.drop(columns=['Unnamed: 2', 'Unnamed: 3', 'Unnamed: 4'])
+df.head()
+
+df = df.rename(columns={
+    'v1': 'label',
+    'v2': 'text'
+})
+df.head()
+
+
+
+# Import the LabelEncoder from sklearn to encode the labels (Ham/Spam) as numeric values
+from sklearn.preprocessing import LabelEncoder
+encoder = LabelEncoder()
+df['label'] = encoder.fit_transform(df['label'])
+
+# Tokenize the text data into words using NLTK's word_tokenize function
+from nltk.tokenize import word_tokenize
+
+df['text'].apply(word_tokenize)
+
+
+
+# Define a function to clean the text data by removing HTML tags, URLs, special characters, punctuation, numbers, and extra whitespace
+import re
+def clean_text(text):
+    text = text.lower()
+
+    # Remove HTML tags
+    text = re.sub(r'<.*?>', '', text)
+
+    # Remove URLs
+    text = re.sub(r'http\S+|www\S+|https\S+', '', text)
+
+    # Remove special characters, punctuation, and numbers
+    text = re.sub(r'[^a-z\s]', '', text)
+
+    # Remove extra whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+
+    return text
+
+# Apply the clean_text function to the 'text' column in the DataFrame
+df['text'] = df['text'].apply(clean_text)
+
+
+
+# Import TfidfVectorizer to convert the text data into numerical features
+from sklearn.feature_extraction.text import TfidfVectorizer
+tfidf= TfidfVectorizer(max_features=3000)
+
+X = tfidf.fit_transform(df['text']).toarray()
+y = df['label']
+
+
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+
+#Import scikit-learn metrics module for accuracy calculation
+from sklearn import metrics
+y_pred = model.predict(X_test)
+print("Accuracy:",metrics.accuracy_score(y_test, y_pred))
+
+
+from sklearn.metrics import confusion_matrix
+from mlxtend.plotting import plot_confusion_matrix
+import matplotlib.pyplot as plt
+
+cm_rnf = confusion_matrix(y_test, y_pred)
+fig, ax = plot_confusion_matrix(conf_mat=cm_rnf ,
+                                show_absolute=True,
+                                colorbar=True,
+                               class_names = ['Ham' , 'Spam' ],
+                               figsize=(5, 3))
+plt.title("CM for Spam Model")
+plt.show()
+
+
+
